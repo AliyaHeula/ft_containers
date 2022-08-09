@@ -30,26 +30,40 @@ public:
 //     typedef std::reverse_iterator<const_iterator>		const_reverse_iterator;
 //     typedef std::reverse_iterator<iterator>				reverse_iterator;
 
-//private:
+private:
     size_type											_size, _capacity;
 	pointer										    	_value_first;
     allocator_type                                      _alloc;
 
+    void bad_alloc_handler () {
+        clear();
+        _alloc.deallocate(_value_first, _size);
+        _size = 0;
+        _capacity = 0;
+    }
+
 public:
 
 //    default (1)
-    explicit vector (const allocator_type& alloc = allocator_type()) : _size(0) , _capacity(0), _value_first(0), _alloc(alloc) {}
+    explicit vector (const allocator_type& alloc = allocator_type())
+            : _size(0) , _capacity(0), _value_first(0), _alloc(alloc) {}
+
 //    fill (2)
     explicit vector (size_type n, const value_type& val = value_type(),
-                     const allocator_type& alloc = allocator_type())
-                     :_size(n), _capacity(n), _alloc(alloc) {
-        value_type *newValue = _alloc.allocate(_capacity);
-        _value_first = newValue;
-        for (size_type i = 0; i < _size; i++) {
-            _alloc.construct(_value_first + i, val);
+            const allocator_type& alloc = allocator_type())
+            :_size(n), _capacity(n), _alloc(alloc) {
+        try {
+            _value_first = _alloc.allocate(_capacity);
+            for (size_type i = 0; i < _size; i++) {
+                _alloc.construct(_value_first + i, val);
+            }
+        } catch (std::bad_alloc& ba) { // _alloc.allocate and _alloc.construct
+            bad_alloc_handler();
+            throw;
         }
 
     }
+
 //    range (3)
     template <class InputIterator>
     vector (InputIterator first, InputIterator last,
@@ -57,30 +71,43 @@ public:
     if (last < first) {
         throw std::length_error("vector");
     }
-    _size = last - first;
-    _capacity = _size;
-    _value_first = _alloc.allocate(_capacity);
-    for (size_type i = 0; first < last; first++, i++) {
-        _alloc.construct(_value_first + i, *first);
+    _size = _capacity = last - first;
+//    _capacity = _size;
+    try {
+        _value_first = _alloc.allocate(_capacity);
+        for (size_type i = 0; first < last; first++, i++) {
+            _alloc.construct(_value_first + i, *first);
+        }
+    } catch (std::bad_alloc& ba) { // _alloc.allocate and _alloc.construct
+        bad_alloc_handler();
+        throw;
     }
 }
+
 //    copy (4)
     vector (const vector& x) {
         *this = x;
     }
 
-    ~vector() {}
+    ~vector() {
+        bad_alloc_handler();
+    }
+
     vector& operator=(const vector& x) {
         if (this != &x) {
-
             clear();
             _alloc.deallocate(_value_first, _size);
             _alloc = x._alloc;
-            _size = x._size;
-            _capacity = x._size;
-            _value_first = _alloc.allocate(_capacity);
-            for (size_type i = 0; i < _size; i++) {
-                _alloc.construct(_value_first + i, x._value_first[i]);
+            _size = _capacity = x._size;
+//            _capacity = x._size;
+            try {
+                _value_first = _alloc.allocate(_capacity);
+                for (size_type i = 0; i < _size; i++) {
+                    _alloc.construct(_value_first + i, x._value_first[i]);
+                }
+            } catch (std::bad_alloc& ba) { // _alloc.allocate and _alloc.construct
+                bad_alloc_handler();
+                throw;
             }
         }
         return *this;
