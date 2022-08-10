@@ -131,7 +131,7 @@ public:
 //Capacity:
 
     size_type size() const { return _size; }
-    size_type max_size() const { return max_size(); }
+    size_type max_size() const { return _alloc.max_size(); }
 
     void resize(size_type sz, const value_type& c) {
         size_type i = 0;
@@ -166,7 +166,24 @@ public:
     size_type capacity() const { return _capacity; }
     bool empty() const { return _size == 0; }
 
-    void reserve(size_type n);
+    void reserve(size_type n) {
+        if (n > max_size()) {
+            throw std::length_error("vector");
+        } else if (n > _capacity) {
+            pointer new_value = _alloc.allocate(n);
+            try {
+                for (size_type i = 0; i < _size; i++) {
+                    _alloc.construct(new_value + i, _value_first[i]);
+                }
+                clear();
+                _alloc.deallocate(_value_first, _size);
+                _value_first = new_value;
+                _capacity = n;
+            } catch (std::exception &e){
+                exception_handler();
+            }
+        }
+    }
 
 //Element access:
 
@@ -200,6 +217,7 @@ public:
     void push_back(const value_type& x) {
         pointer new_value;
         if (_capacity == _size) {
+            _capacity = _capacity == 0 ? 1 : _capacity;
             new_value = _alloc.allocate(_capacity * 2);
             try {
                 _capacity *= 2;
@@ -212,12 +230,12 @@ public:
                     _alloc.destroy(_value_first + i);
                 }
                 _alloc.deallocate(_value_first, _size);
-                _value_first = new_value;
-                _size += 1;
             } catch (std::exception& e) { // _alloc.construct
 
                 throw;
             }
+            _value_first = new_value;
+            _size += 1;
 		}
 	}
 
