@@ -35,11 +35,12 @@ private:
 	pointer										    	_value_first;
     allocator_type                                      _alloc;
 
-    void bad_alloc_handler () {
+    void exception_handler () {
         clear();
         _alloc.deallocate(_value_first, _size);
         _size = 0;
         _capacity = 0;
+        throw;
     }
 
 public:
@@ -52,14 +53,13 @@ public:
     explicit vector (size_type n, const value_type& val = value_type(),
             const allocator_type& alloc = allocator_type())
             :_size(n), _capacity(n), _alloc(alloc) {
+        _value_first = _alloc.allocate(_capacity);
         try {
-            _value_first = _alloc.allocate(_capacity);
             for (size_type i = 0; i < _size; i++) {
                 _alloc.construct(_value_first + i, val);
             }
-        } catch (std::bad_alloc& ba) { // _alloc.allocate and _alloc.construct
-            bad_alloc_handler();
-            throw;
+        } catch (std::exception &e) { // _alloc.construct
+            exception_handler();
         }
 
     }
@@ -78,9 +78,8 @@ public:
         for (size_type i = 0; first < last; first++, i++) {
             _alloc.construct(_value_first + i, *first);
         }
-    } catch (std::bad_alloc& ba) { // _alloc.allocate and _alloc.construct
-        bad_alloc_handler();
-        throw;
+    } catch (std::exception &e) { // _alloc.construct
+        exception_handler();
     }
 }
 
@@ -90,7 +89,10 @@ public:
     }
 
     ~vector() {
-        bad_alloc_handler();
+        clear();
+        _alloc.deallocate(_value_first, _size);
+        _size = 0;
+        _capacity = 0;
     }
 
     vector& operator=(const vector& x) {
@@ -100,20 +102,17 @@ public:
             _alloc = x._alloc;
             _size = _capacity = x._size;
 //            _capacity = x._size;
+            _value_first = _alloc.allocate(_capacity);
             try {
-                _value_first = _alloc.allocate(_capacity);
                 for (size_type i = 0; i < _size; i++) {
                     _alloc.construct(_value_first + i, x._value_first[i]);
                 }
-            } catch (std::bad_alloc& ba) { // _alloc.allocate and _alloc.construct
-                bad_alloc_handler();
-                throw;
+            } catch (std::exception &e) { // _alloc.construct
+                exception_handler();
             }
         }
         return *this;
 	}
-
-
 
 //Iterators:
 
@@ -140,7 +139,8 @@ public:
             try {
                 pointer new_value = _alloc.allocate(sz);
                 for (; i < _size; i++) {
-                    new_value[i] = _value_first[i];
+                    _alloc.construct(new_value + i, _value_first[i]);
+//                    new_value[i] = _value_first[i];
                 }
                 clear();
                 _alloc.deallocate(_value_first, _size);
@@ -200,21 +200,25 @@ public:
     void push_back(const value_type& x) {
         pointer new_value;
         if (_capacity == _size) {
+            new_value = _alloc.allocate(_capacity * 2);
             try {
-                new_value = _alloc.allocate(_capacity * 2);
                 _capacity *= 2;
+                size_type i = 0;
+                for (; i < _size; i++) {
+                    _alloc.construct(new_value + i, _value_first[i]);
+                }
+                _alloc.construct(new_value + i, x);
                 for (size_type i = 0; i < _size; i++) {
-                    new_value[i] = _value_first[i];
                     _alloc.destroy(_value_first + i);
                 }
                 _alloc.deallocate(_value_first, _size);
                 _value_first = new_value;
-            } catch (const std::length_error& le) {
-                throw le;
+                _size += 1;
+            } catch (std::exception& e) { // _alloc.construct
+
+                throw;
             }
 		}
-        _value_first[_size] = x;
-        _size += 1;
 	}
 
     void pop_back() {
