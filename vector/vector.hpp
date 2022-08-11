@@ -38,7 +38,7 @@ private:
     void exception_handler () {
         clear();
         _alloc.deallocate(_value_first, _size);
-        _size = 0;
+//        _size = 0;
         _capacity = 0;
         throw;
     }
@@ -91,7 +91,7 @@ public:
     ~vector() {
         clear();
         _alloc.deallocate(_value_first, _size);
-        _size = 0;
+//        _size = 0;
         _capacity = 0;
     }
 
@@ -172,10 +172,12 @@ public:
         } else if (n > _capacity) {
             pointer new_value = _alloc.allocate(n);
             try {
-                for (size_type i = 0; i < _size; i++) {
+                size_type i = 0;
+                for (; i < _size; i++) {
                     _alloc.construct(new_value + i, _value_first[i]);
                 }
                 clear();
+                _size = i;
                 _alloc.deallocate(_value_first, _size);
                 _value_first = new_value;
                 _capacity = n;
@@ -215,28 +217,19 @@ public:
     // void assign(initializer_list<value_type> il);
 
     void push_back(const value_type& x) {
-        pointer new_value;
-        if (_capacity == _size) {
-            _capacity = _capacity == 0 ? 1 : _capacity;
-            new_value = _alloc.allocate(_capacity * 2);
-            try {
-                _capacity *= 2;
-                size_type i = 0;
-                for (; i < _size; i++) {
-                    _alloc.construct(new_value + i, _value_first[i]);
+        try {
+            if (_capacity == _size) {
+                if (_capacity == 0) {
+                    reserve(1);
+                } else {
+                    reserve(_capacity * 2);
                 }
-                _alloc.construct(new_value + i, x);
-                for (size_type i = 0; i < _size; i++) {
-                    _alloc.destroy(_value_first + i);
-                }
-                _alloc.deallocate(_value_first, _size);
-            } catch (std::exception& e) { // _alloc.construct
-
-                throw;
             }
-            _value_first = new_value;
+            _alloc.construct(_value_first + _size, x);
             _size += 1;
-		}
+        } catch (std::exception& e) { // _alloc.construct
+            throw;
+        }
 	}
 
     void pop_back() {
