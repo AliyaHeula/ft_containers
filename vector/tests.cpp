@@ -28,7 +28,7 @@ void print_capacity_size(std::vector<int> &ft) {
 
 int main() {
 //push_back()
-    std::cout << "\n\npush_back()\n";
+    std::cout << "\n\npush_back():\n";
     ft::vector<int> ft;
     std::vector<int> st;
     for (int k = 0; k < 5; k++) {
@@ -40,7 +40,7 @@ int main() {
     }
 
 //reserve()
-    std::cout << "\n\nreserve()\n";
+    std::cout << "\n\nreserve():\n";
     ft.reserve(9);
     st.reserve(9);
     print_vector(ft);
@@ -56,7 +56,7 @@ int main() {
     print_capacity_size(st);
 
 //assign()
-    std::cout << "\n\nassign()\n";
+    std::cout << "\n\nassign():\n";
     ft.assign(10, 8);
     st.assign(10, 8);
     print_vector(ft);
@@ -82,6 +82,23 @@ int main() {
     print_capacity_size(ft1);
     print_vector(st1);
     print_capacity_size(st1);
+
+//    assign() with iterators
+    std::vector<int> st3;
+    std::vector<int> st2;
+    st2.assign(2, 5);
+
+    for (int k = 0; k < 3; k++) {
+        ft1.push_back(k);
+        st3.push_back(k);
+    }
+    std::vector<int>::iterator it_begin = st3.begin();
+    std::vector<int>::iterator it_end = st3.end();
+    st2.assign(it_begin, it_end);
+    print_vector(st2);
+    print_capacity_size(st2);
+    
+//resize()    
     std::cout << "\n\nresize():\n";
     ft1.resize(1,7);
     st1.resize(1,7);

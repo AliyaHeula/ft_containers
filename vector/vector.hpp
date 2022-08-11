@@ -201,8 +201,23 @@ public:
 
 //Modifiers:
 
-//    template <class InputIterator>
-//        void assign(InputIterator first, InputIterator last);
+    template <class InputIterator>
+        void assign(InputIterator first, InputIterator last) {
+        if (last < first) {
+            throw std::length_error("vector");
+        }
+        clear();
+        try {
+            reserve(last - first);
+            for (size_type i = 0; first < last; first++, i++) {
+                _alloc.construct(_value_first + i, *first);
+            }
+            _size = _capacity = last - first;
+        } catch (std::exception &e) {
+            throw;
+        }
+    }
+
     void assign(size_type n, const value_type& u) {
         try {
             size_type i = 0;
@@ -262,9 +277,7 @@ public:
     // iterator erase(const_iterator position);
     // iterator erase(const_iterator first, const_iterator last);
 
-    // void swap(vector&)
-    //    (allocator_traits<allocator_type>::propagate_on_container_swap::value ||
-    //              allocator_traits<allocator_type>::is_always_equal::value);  // C++17
+//    void swap (vector& x);
 
     void clear() {
         for (size_type i = 0; i < _size; i++) {
