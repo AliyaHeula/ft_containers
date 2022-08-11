@@ -134,29 +134,20 @@ public:
     size_type max_size() const { return _alloc.max_size(); }
 
     void resize(size_type sz, const value_type& c) {
-        size_type i = 0;
         try {
             if (sz > _capacity) {
-                    pointer new_value = _alloc.allocate(sz);
-                    for (; i < _size; i++) {
-                        _alloc.construct(new_value + i, _value_first[i]);
-                    }
-                    clear();
-                    _alloc.deallocate(_value_first, _size);
-                    _value_first = new_value;
-                    for (; i < sz; i++) {
-                        _value_first[i] = c;
-                    }
-                _size = sz;
+                size_type tmp = sz > _capacity * 2 ? sz : _capacity * 2;
+                reserve(tmp);
+                for (size_type i = _size; i < sz; i++) {
+                    _alloc.construct(_value_first + i, c);
+                }
             } else if (sz < _capacity) {
-                for (size_type k = sz; k < _size; k++) {
-                    _alloc.destroy(_value_first + k);
+                for (size_type i = sz; i < _size; i++) {
+                    _alloc.destroy(_value_first + i);
+                    _alloc.construct(_value_first + i, c);
                 }
-                for (size_type k = _size; k < sz; k++) {
-                    _alloc.construct(_value_first + k, c);
-                }
-                _size = sz;
             }
+            _size = sz;
         } catch (std::bad_alloc &ba) {
             throw;
         }
@@ -224,7 +215,7 @@ public:
                 clear();
                 _alloc.deallocate(_value_first, tmp);
                 _value_first = new_value;
-
+                _capacity = n;
             } else {
                 for (; i < n; i++) {
                     _alloc.construct(_value_first + i, u);
@@ -232,7 +223,6 @@ public:
                 for (; i < _size; i++) {
                     _alloc.destroy(_value_first + i);
                 }
-
             }
             _size = n;
         } catch (std::exception &e) {
