@@ -135,31 +135,30 @@ public:
 
     void resize(size_type sz, const value_type& c) {
         size_type i = 0;
-		if (sz > _capacity) {
-            try {
-                pointer new_value = _alloc.allocate(sz);
-                for (; i < _size; i++) {
-                    _alloc.construct(new_value + i, _value_first[i]);
-//                    new_value[i] = _value_first[i];
+        try {
+            if (sz > _capacity) {
+                    pointer new_value = _alloc.allocate(sz);
+                    for (; i < _size; i++) {
+                        _alloc.construct(new_value + i, _value_first[i]);
+                    }
+                    clear();
+                    _alloc.deallocate(_value_first, _size);
+                    _value_first = new_value;
+                    for (; i < sz; i++) {
+                        _value_first[i] = c;
+                    }
+                _size = sz;
+            } else if (sz < _capacity) {
+                for (size_type k = sz; k < _size; k++) {
+                    _alloc.destroy(_value_first + k);
                 }
-                clear();
-                _alloc.deallocate(_value_first, _size);
-                _value_first = new_value;
-                for (; i < sz; i++) {
-                    _value_first[i] = c;
+                for (size_type k = _size; k < sz; k++) {
+                    _alloc.construct(_value_first + k, c);
                 }
-            } catch (std::bad_alloc &ba) {
-                throw &ba;
+                _size = sz;
             }
-            _size = sz;
-        } else if (sz < _capacity) {
-            for (size_type k = sz; k < _size; k++) {
-                _alloc.destroy(_value_first + k);
-            }
-            for (size_type k = _size; k < sz; k++) {
-                _value_first[k] = c;
-            }
-            _size = sz;
+        } catch (std::bad_alloc &ba) {
+            throw;
         }
 	}
 
@@ -211,10 +210,35 @@ public:
 
 //Modifiers:
 
-    template <class InputIterator>
-        void assign(InputIterator first, InputIterator last);
-    void assign(size_type n, const value_type& u);
-    // void assign(initializer_list<value_type> il);
+//    template <class InputIterator>
+//        void assign(InputIterator first, InputIterator last);
+    void assign(size_type n, const value_type& u) {
+        try {
+            size_type i = 0;
+            if (n > _capacity) {
+                pointer new_value = _alloc.allocate(n);
+                for (; i < n; i++) {
+                    _alloc.construct(new_value + i, u);
+                }
+                size_type tmp = _size;
+                clear();
+                _alloc.deallocate(_value_first, tmp);
+                _value_first = new_value;
+
+            } else {
+                for (; i < n; i++) {
+                    _alloc.construct(_value_first + i, u);
+                }
+                for (; i < _size; i++) {
+                    _alloc.destroy(_value_first + i);
+                }
+
+            }
+            _size = n;
+        } catch (std::exception &e) {
+            throw;
+        }
+    }
 
     void push_back(const value_type& x) {
         try {
@@ -237,12 +261,13 @@ public:
         _size -= 1;
     }
 
-    // iterator insert(const_iterator position, const value_type& x);
-    // iterator insert(const_iterator position, value_type&& x);
-    // iterator insert(const_iterator position, size_type n, const value_type& x);
-    // template <class InputIterator>
-    //     iterator insert(const_iterator position, InputIterator first, InputIterator last);
-    // iterator insert(const_iterator position, initializer_list<value_type> il);
+//single element (1)
+//    iterator insert (iterator position, const value_type& val);
+//fill (2)
+//    void insert (iterator position, size_type n, const value_type& val);
+//range (3)
+//    template <class InputIterator>
+//    void insert (iterator position, InputIterator first, InputIterator last);
 
     // iterator erase(const_iterator position);
     // iterator erase(const_iterator first, const_iterator last);
